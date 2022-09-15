@@ -16,6 +16,6 @@ Este set de datos contiene siete variables
 | `iso3`           | caracter | Código ISO de tres caracteres                                                                            |
 | `continente`     | caracter | El continente en que se encuentra el país ("Américas" hace referencia a América del norte, Centro y Sur) |
 
-Los datos fueron obtenidos del sitio del Banco Mundial en el caso de la variable `pib` y de la página del proyecto Gapminder en el caso de las variables `esperanza_vida` y `poblacion`
+Los datos fueron obtenidos del sitio del Banco Mundial en el caso de la variable `pib` y de la página del proyecto Gapminder en el caso de las variables `esperanza_vida` y `poblacion`. Los archivos de donde se sacaron dichos datos están en la subcarpeta `datos-sin-procesar`
 
 El código utilizado para crear este set de datos se encuentra disponible en `/codigo/13-09-2022_Datos-sin-procesar.R`.
