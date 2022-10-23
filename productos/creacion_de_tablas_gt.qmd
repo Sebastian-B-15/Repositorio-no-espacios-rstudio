@@ -1,0 +1,197 @@
+---
+title: "Tablas"
+author: "Sebastián Baeza"
+format: html
+editor: visual
+---
+
+## Tablas de resumen con gtsummary
+
+¿Qué quiero mostrar?
+
+Relación entre valores o variables, conjunto de valores -\> gráfico
+
+Valor específico de un año, individuales, comparar datos específicos como promedios -\> tabla
+
+Todo se trata de: conjunto-relación v/s especifidad
+
+library(gt) paquete enfocado en tablas, estas tienen diversas partes
+
+library(gtsummary) paquete enfocado en tablas de resumen
+
+library(broom) #extraer como data frame las "listas" creadas como tablas
+
+Tablas dinámicas con readtable
+
+\*El paquete gt no funciona bien en algunos formatos, pero con html y pdf funciona bien
+
+<br> Cargamos los paquetes que usaremos
+
+```{r}
+#| echo: false
+#| message: false
+library(datos)
+library(gt)
+library(gtsummary)
+library(broom)
+library(dplyr)
+library(tidyr)
+```
+
+Crearemos una tabla con el dataset de pinguinos
+
+```{r}
+pinguinos |>
+  filter(isla == "Biscoe") |>
+  select(-c(isla, anio, especie)) |>
+  drop_na() |> #borra los na
+  tbl_summary() #crea una tabla de resumen (compatible con html), por defecto muestra la mediana y rangos intercuartil en variables numéricas, y variables categóricas
+```
+
+Ahora vamos a realizarle algunas modificaciones:
+```{r}
+theme_gtsummary_language(
+  language = "es",
+  decimal.mark = ",", #separador de decimales
+  big.mark = "" #separador de miles
+) 
+#Todas las tablas que se ejecuten luego tendrán este tema
+#Para quitar el tema se puede reiniciar la sesión de rstudio
+```
+
+```{r}
+pinguinos |>
+  filter(isla == "Biscoe") |>
+  select(-c(isla, anio, especie)) |>
+  drop_na() |>
+  tbl_summary(
+    statistic = list(
+      all_continuous() ~ "{mean} ({sd})"
+    )
+  ) |>
+#con statistic entregamos una lista con las funciones que se les aplica a cada variable, entre un paréntesis va la media
+  modify_footnote(
+    update = list(
+      all_stat_cols() ~ "Media (desviación estándar); Recuento (%)"
+    )
+  )
+```
+Dividiremos la tabla en columnas según el sexo
+```{r}
+pinguinos |>
+  filter(isla == "Biscoe") |>
+  select(-c(isla, anio, especie)) |>
+  drop_na() |>
+  tbl_summary(
+    statistic = list(
+      all_continuous() ~ "{mean} ({sd})"
+    ),
+    by = "sexo" #se entregan los estadísticos según sexo, o sea se forman 2 columnas para esto
+  ) |>
+  modify_footnote(
+    update = list(
+      all_stat_cols() ~ "Media (desviación estándar); Recuento (%)"
+    )
+  ) |>
+  add_p() |>#añade una columna con los valores p para cada estadístico, por defecto son valores p para el wilcox.test, ver más detalles
+  modify_spanning_header(
+    all_stat_cols() ~ "**Sexo**"
+  ) |> #con esto modificamos/creamos un encabezado sobre el encabezado de columnas, para las columnas con estadísticos. Se puede escribir en formato markdown en el texto
+  modify_header(
+    update = list(
+      label ~ "**Variable**",
+      p.value ~ "**valor p**"
+    )
+  ) #con esto si se modifica el encabezado, cada elemento de la lista corresponde al encabezado de una columna
+```
+
+Por último editaremos el normbre de cada variable (label):
+```{r}
+pinguinos |>
+  filter(isla == "Biscoe") |>
+  select(-c(isla, anio, especie)) |>
+  drop_na() |>
+  tbl_summary(
+    statistic = list(
+      all_continuous() ~ "{mean} ({sd})"
+    ),
+    by = "sexo",
+    label = list(
+      masa_corporal_g ~ "Masa Corporal (gramos)"
+    )
+  ) |>
+  modify_footnote(
+    update = list(
+      all_stat_cols() ~ "Media (desviación estándar); Recuento (%)"
+    )
+  ) |>
+  add_p() |>
+  modify_spanning_header(
+    all_stat_cols() ~ "**Sexo**"
+  ) |> 
+  modify_header(
+    update = list(
+      label ~ "**Variable**",
+      p.value ~ "**valor p**"
+    )
+  ) 
+```
+
+## Tablas gt
+
+El uso más simple sería crear una tabla a partir de un data frame
+
+```{r}
+paises |>
+  filter(anio == 2007) |>
+  group_by(continente) |>
+  slice_max(poblacion, n = 3) |>#devuelve los 3 valores más altos de la variable poblacion, como se agrupó por continente devuelve los 3 más altos por continente
+  gt() |> #para que tenga un frmato de tabla y no salga el output "feo" de r
+  tab_header(title = "Paises con mayor población en el año 2007", 
+             subtitle = "Segun continente") |>
+  tab_footnote(footnote = "Estos son los únicos dos países de Oceanía en esta base de datos", 
+               locations = cells_body( #ubicacion de la nota al pie, en las celdas del cuerpo de la tabla
+                 columns = pais,
+                 rows = 13:14
+               )
+               ) |>
+  tab_footnote(footnote = "Otro pie de página, para probar", 
+               locations = cells_body(
+                 columns = pais,
+                 rows = 10:12
+               )
+               ) |>
+  tab_source_note(source_note = "Fuente: gapminder.org") |>
+  tab_spanner(label = "Variables de desarrollo medidas",
+              columns = 4:6) #Como antes es un encabezado sobre el encabezado de columnas. El número de la columna se cuenta en el orden que aparece en el data frame (que visualizamos en r) fuente de la tabla, en este caso la variable continente no aparece como columna en la tabla creada con gt, pero si en el data frame original
+```
+
+Otro ejemplo es usar gt para crear una tabla con información de las variables de mi set de datos:
+```{r}
+data.frame(variable = names(paises),
+           descripcion = c( #agragar tilde a descripci"ó"n pero dentro de una cadena de carácteres (en opciones de gt(), ya que sino llamaríamos a un objeto descripción y podría ser mucho más problemático en algunos casos)
+             "País (142 niveles se encuentran)",
+             "etc",
+             "etc",
+             "etc",
+             "etc",
+             "etc"
+           )
+           ) |>
+  gt()
+```
+
+## Resultados de un modelo en un data frame
+
+```{r}
+modelo <- lm(masa_corporal_g ~ largo_aleta_mm + largo_pico_mm, data = pinguinos)
+summary(modelo)
+```
+
+Con tidy podemos convertir esta lista a un data frame (y tenemos más funciones para extraer variables):
+```{r}
+tidy(modelo) |> gt()
+glance(modelo) |> gt() #valores de tests y sobre la calidad de ajuste
+augment(modelo) |> gt() #información específica sobre cada observación, valores ajustados, residuos, varianza estimada, etc.
+```
+
